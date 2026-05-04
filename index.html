@@ -328,9 +328,10 @@
 
     .type-choice-grid {
       display:grid;
-      grid-template-columns:minmax(0, 1.45fr) minmax(0, .95fr);
-      gap:2px 24px;
+      grid-template-columns:minmax(360px, 1.25fr) minmax(220px, .75fr);
+      gap:2px 28px;
       align-items:start;
+      width:100%;
     }
 
     .type-left,
@@ -344,14 +345,13 @@
     }
 
     .type-other-row {
-      display:grid;
-      grid-template-columns:auto minmax(120px, 190px);
+      display:flex;
       align-items:center;
-      column-gap:8px;
-      max-width:100%;
+      gap:8px;
       margin-top:2px;
       white-space:nowrap;
-      justify-content:start;
+      flex-wrap:nowrap;
+      justify-content:flex-start;
     }
 
     .type-other-row label.check {
@@ -362,15 +362,17 @@
       min-height:24px;
       white-space:nowrap;
       width:auto;
+      flex:0 0 auto;
     }
 
     .type-other-row input {
-      width:100%;
-      min-width:120px;
-      max-width:190px !important;
+      width:180px;
+      min-width:160px;
+      max-width:220px !important;
       border:1px solid #ccc;
       padding:2px 4px;
-      display:block;
+      display:inline-block;
+      flex:0 0 180px;
     }
 
     #timeTable input[type="date"] {
@@ -765,7 +767,7 @@
       </div>
 
       <table>
-        <tr><td class="label">Numéro de rapport</td><td><input data-field="reportNumber"></td><td rowspan="13" style="width:32%">
+        <tr><td class="label">Numéro de rapport</td><td><input data-field="reportNumber"></td><td rowspan="12" style="width:32%">
           <div class="main-photo-area">
             <div class="main-photo-box" id="mainPhotoBox"><span class="small">Aucune photo principale</span></div>
             <div class="photo-actions no-print photo-source-actions">
@@ -794,7 +796,7 @@
           <label class="check"><input type="checkbox" data-field="connectionThreaded">Taraudé</label>
         </div></td></tr>
         <tr><td class="label">Orientation</td><td><div class="checks"><label class="check"><input type="checkbox" data-field="orientationVertical">verticale</label><label class="check"><input type="checkbox" data-field="orientationHorizontal">horizontale</label></div></td></tr>
-        <tr><td class="label">Type</td><td>
+        <tr><td class="label">Type</td><td colspan="2">
           <div class="type-choice-grid">
             <div class="type-left">
               <label class="check"><input type="checkbox" data-field="typeGlobeValve">Robinet soupape</label>
