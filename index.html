@@ -962,7 +962,7 @@
       display:none !important;
     }
 
-    /* v29 : champs requis pour générer le numéro de rapport */
+    /* v30 : champs requis pour générer le numéro de rapport */
     [data-field="customer"].report-required-missing,
     [data-field="technician"].report-required-missing {
       border:2px solid #b00020 !important;
@@ -1002,7 +1002,6 @@
         <tr><td class="label">Numéro de rapport</td><td>
           <div class="report-number-field">
             <input data-field="reportNumber">
-            <button type="button" class="secondary no-print" onclick="generateReportNumberManually()">Générer</button>
           </div>
         </td><td rowspan="12" style="width:32%">
           <div class="main-photo-area">
@@ -1857,6 +1856,22 @@
       });
     }
 
+    function getFirstMissingReportField() {
+      return ['customer', 'technician']
+        .map(key => qs(`[data-field="${key}"]`))
+        .find(el => el && !String(el.value || '').trim()) || null;
+    }
+
+    function focusFirstMissingReportField() {
+      const el = getFirstMissingReportField();
+      if (!el) return false;
+      setTimeout(() => {
+        el.scrollIntoView({ behavior:'smooth', block:'center' });
+        el.focus({ preventScroll:true });
+      }, 50);
+      return true;
+    }
+
     function syncDocumentTitleWithReportNumber() {
       const safeTitle = getReportFileBaseName();
       if (safeTitle) document.title = safeTitle;
@@ -1873,7 +1888,10 @@
 
       const number = generateReportNumber();
       if (!number) {
-        if (!silent) alert('Remplis d’abord le client et le technicien pour générer le numéro de rapport.');
+        if (!silent) {
+          alert('Remplis d’abord le client et le technicien pour générer le numéro de rapport.');
+          focusFirstMissingReportField();
+        }
         return false;
       }
 
@@ -1890,23 +1908,25 @@
       return ensureReportNumber(true);
     }
 
-    function generateReportNumberManually() {
-      const field = qs('[data-field="reportNumber"]');
-      if (!field) return;
-
-      if (field.value.trim() && !confirm('Remplacer le numéro de rapport actuel ?')) return;
-      ensureReportNumber(true);
-    }
-
     function bindReportNumberAuto() {
       ['customer', 'technician', 'reportDate'].forEach(key => {
         const el = qs(`[data-field="${key}"]`);
         if (!el) return;
 
-        // Pas de génération à chaque frappe : évite les pop-ups répétées sur iPad.
-        el.addEventListener('input', updateReportRequiredVisualState);
-        el.addEventListener('blur', () => ensureReportNumber(false, true));
-        el.addEventListener('change', () => ensureReportNumber(false, true));
+        // Génération automatique silencieuse dès que Client + Technicien sont remplis.
+        // Aucune pop-up pendant la saisie.
+        el.addEventListener('input', () => {
+          updateReportRequiredVisualState();
+          ensureReportNumber(false, true);
+        });
+        el.addEventListener('change', () => {
+          updateReportRequiredVisualState();
+          ensureReportNumber(false, true);
+        });
+        el.addEventListener('blur', () => {
+          updateReportRequiredVisualState();
+          ensureReportNumber(false, true);
+        });
       });
     }
 
@@ -2012,7 +2032,7 @@
       });
 
       loadLocal();
-      ensureReportNumber(false);
+      ensureReportNumber(false, true);
       setPhotoHeaderLockState();
       syncPhotoHeader();
     }
