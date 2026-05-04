@@ -807,7 +807,7 @@
         min-height:45px;
       }
 
-      /* Optimisation PDF v26 : éviter les coupes et les débordements */
+      /* Optimisation PDF v27 : éviter les coupes et les débordements */
       * {
         box-sizing:border-box !important;
       }
@@ -1812,14 +1812,14 @@
       return `R-DCVALVES-${date}-${customer}-${technician}-${time}`;
     }
 
-    function ensureReportNumber(force = false) {
+    function ensureReportNumber(force = false, silent = false) {
       const field = qs('[data-field="reportNumber"]');
       if (!field) return false;
       if (!force && field.value.trim()) return true;
 
       const number = generateReportNumber();
       if (!number) {
-        alert('Remplis d’abord le client et le technicien pour générer le numéro de rapport.');
+        if (!silent) alert('Remplis d’abord le client et le technicien pour générer le numéro de rapport.');
         return false;
       }
 
@@ -1846,9 +1846,10 @@
       ['customer', 'technician', 'reportDate'].forEach(key => {
         const el = qs(`[data-field="${key}"]`);
         if (!el) return;
-        ['input', 'change'].forEach(eventName => {
-          el.addEventListener(eventName, () => ensureReportNumber(false));
-        });
+
+        // Pas de génération à chaque frappe : évite les pop-ups répétées sur iPad.
+        el.addEventListener('blur', () => ensureReportNumber(false, true));
+        el.addEventListener('change', () => ensureReportNumber(false, true));
       });
     }
 
