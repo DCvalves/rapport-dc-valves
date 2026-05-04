@@ -807,7 +807,7 @@
         min-height:45px;
       }
 
-      /* Optimisation PDF v23 : éviter les coupes et les débordements */
+      /* Optimisation PDF v24 : éviter les coupes et les débordements */
       * {
         box-sizing:border-box !important;
       }
@@ -954,6 +954,12 @@
         line-height:1.05 !important;
       }
 
+    }
+
+    .print-mode .no-print,
+    .print-mode button,
+    .print-mode .toolbar {
+      display:none !important;
     }
   </style>
 </head>
@@ -1196,11 +1202,11 @@
     <section class="page time-report-page">
       <div class="report-head"><div class="report-title">Certificat de travail / Rapport de temps</div><div class="logo"><img src="dc_valves_logo.png" alt="Logo DC Valves"></div></div>
       <table>
-        <tr><td class="label">Société</td><td><input data-field="company"></td><td class="label">Téléphone</td><td><input data-field="companyPhone"></td></tr>
+        <tr><td class="label">Client</td><td><input data-field="customer"></td><td class="label">Téléphone</td><td><input data-field="companyPhone"></td></tr>
         <tr><td class="label">Rue</td><td><input data-field="street"></td><td class="label">Site web</td><td><input data-field="web"></td></tr>
         <tr><td class="label">Localité</td><td><input data-field="town"></td><td class="label">Contact DC Valves</td><td><input data-field="dcContact"></td></tr>
         <tr><td class="label">Date</td><td><input type="date" data-field="reportDate"></td><td class="label">Technicien</td><td><input data-field="technician"></td></tr>
-        <tr><td class="label">Client</td><td><input data-field="customer"></td><td class="label">N° de commande</td><td><input data-field="orderNo"></td></tr>
+        <tr><td class="label">N° de commande</td><td colspan="3"><input data-field="orderNo"></td></tr>
         <tr><td class="label">Défaut constaté ou service demandé</td><td colspan="3"><textarea data-field="desiredService"></textarea></td></tr>
         <tr><td class="label">Matériel nécessaire</td><td colspan="3"><textarea data-field="necessaryMaterial"></textarea></td></tr>
       </table>
@@ -1422,16 +1428,27 @@
       const safeTitle = reportField ? reportField.value.trim() : '';
       if (safeTitle) document.title = safeTitle;
       saveLocal();
-      await saveToCommonExcel('pdf_impression');
-      setTimeout(() => window.print(), 300);
+
+      // Ne pas attendre l'envoi Google Sheets avant d'ouvrir l'impression :
+      // cela rend le bouton PDF/Imprimer beaucoup plus réactif sur iPad.
+      saveToCommonExcel('pdf_impression').catch(error => {
+        console.warn('Envoi Google Sheets différé/échoué :', error);
+      });
+
+      document.body.classList.add('print-mode');
+      setTimeout(() => window.print(), 80);
     }
 
     window.addEventListener('afterprint', () => {
+      document.body.classList.remove('print-mode');
       isPrinting = false;
     });
 
     window.addEventListener('focus', () => {
-      setTimeout(() => { isPrinting = false; }, 300);
+      setTimeout(() => {
+        document.body.classList.remove('print-mode');
+        isPrinting = false;
+      }, 300);
     });
 
     function addPhotoCard(photo = {}) {

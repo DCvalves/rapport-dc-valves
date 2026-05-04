@@ -72,3 +72,6 @@ Sans cette URL, la PWA continue de fonctionner normalement, mais ne peut pas éc
 VERSION v19
 - URL Google Apps Script intégrée.
 - Les exports PDF/impression et JSON envoient les données vers le Google Sheet commun.
+
+
+Version v24 : ligne Société supprimée dans le rapport de temps, Client déplacé en première ligne, impression plus réactive sur iPad.
