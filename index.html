@@ -539,7 +539,7 @@
     @media print {
       @page {
         size:A4 portrait;
-        margin:7mm;
+        margin:6mm;
       }
 
       html,
@@ -806,6 +806,154 @@
       .main-photo-area textarea {
         min-height:45px;
       }
+
+      /* Optimisation PDF v23 : éviter les coupes et les débordements */
+      * {
+        box-sizing:border-box !important;
+      }
+
+      .page {
+        padding:3.5mm !important;
+        overflow:visible !important;
+      }
+
+      table {
+        width:100% !important;
+        max-width:100% !important;
+        table-layout:fixed !important;
+        break-inside:auto !important;
+        page-break-inside:auto !important;
+      }
+
+      thead, tbody {
+        break-inside:auto !important;
+        page-break-inside:auto !important;
+      }
+
+      tr, td, th {
+        break-inside:avoid !important;
+        page-break-inside:avoid !important;
+      }
+
+      td, th, .label, label.check, .section-title, .report-title, .photo-caption {
+        overflow-wrap:anywhere !important;
+        word-break:normal !important;
+      }
+
+      input, textarea, select {
+        max-width:100% !important;
+        overflow:hidden !important;
+        text-overflow:ellipsis !important;
+      }
+
+      label.check {
+        white-space:normal !important;
+      }
+
+      .report-head {
+        min-height:50px !important;
+      }
+
+      .logo img {
+        max-height:54px !important;
+      }
+
+      .page:nth-of-type(1) {
+        padding:3mm !important;
+      }
+
+      .page:nth-of-type(1) th,
+      .page:nth-of-type(1) td {
+        font-size:8.8px !important;
+        padding:1.6px 2.2px !important;
+        line-height:1.08 !important;
+      }
+
+      .page:nth-of-type(1) input,
+      .page:nth-of-type(1) textarea {
+        font-size:8.8px !important;
+        line-height:1.08 !important;
+      }
+
+      .page:nth-of-type(1) label.check {
+        min-height:13px !important;
+        line-height:1.05 !important;
+        gap:3px !important;
+      }
+
+      .page:nth-of-type(1) input[type="checkbox"] {
+        width:10px !important;
+        height:10px !important;
+      }
+
+      .page:nth-of-type(1) .main-photo-box {
+        min-height:145px !important;
+      }
+
+      .page:nth-of-type(1) .main-photo-area textarea {
+        min-height:38px !important;
+      }
+
+      .page:nth-of-type(1) .section-title,
+      .page:nth-of-type(1) .equipment-title {
+        font-size:9px !important;
+        padding:2px !important;
+        margin-top:3px !important;
+      }
+
+      .page:nth-of-type(2) .photo-grid {
+        grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+      }
+
+      .page:nth-of-type(2) .photo-card {
+        min-height:0 !important;
+        height:205px !important;
+        padding:4px !important;
+        break-inside:avoid !important;
+        page-break-inside:avoid !important;
+      }
+
+      .page:nth-of-type(2) .photo-box {
+        height:168px !important;
+        margin-bottom:3px !important;
+      }
+
+      .page:nth-of-type(2) .photo-caption {
+        display:flex !important;
+        align-items:center !important;
+        gap:4px !important;
+        font-size:9.5px !important;
+        line-height:1.05 !important;
+        white-space:nowrap !important;
+      }
+
+      .page:nth-of-type(2) .photo-caption input {
+        flex:1 1 auto !important;
+        min-width:0 !important;
+      }
+
+      #timeTable input[type="date"],
+      #timeTable input[type="time"] {
+        text-align:center !important;
+      }
+
+      .time-report-page {
+        padding:3mm !important;
+      }
+
+      .time-report-page th,
+      .time-report-page td {
+        font-size:8.2px !important;
+        padding:1.2px 1.8px !important;
+        line-height:1.05 !important;
+      }
+
+      .time-report-page input,
+      .time-report-page textarea {
+        font-size:8.2px !important;
+        line-height:1.05 !important;
+      }
+
     }
   </style>
 </head>
