@@ -326,22 +326,30 @@
       font-weight:600;
     }
 
+    .type-nowrap {
+      white-space:nowrap;
+      flex-wrap:nowrap;
+    }
+
     .type-other-row {
       display:flex;
-      flex-direction:column;
-      align-items:stretch;
-      gap:3px;
+      align-items:center;
+      gap:8px;
       max-width:100%;
       margin-top:2px;
+      flex-wrap:nowrap;
+      white-space:nowrap;
     }
 
     .type-other-row label.check {
-      width:100%;
+      flex:0 0 auto;
+      white-space:nowrap;
     }
 
     .type-other-row input {
-      width:100%;
-      max-width:none !important;
+      flex:1 1 auto;
+      min-width:120px;
+      max-width:190px !important;
       display:block;
     }
 
@@ -777,7 +785,7 @@
                 <label class="check"><input type="checkbox" data-field="typeButterflyDouble">double excentrique</label>
                 <label class="check"><input type="checkbox" data-field="typeButterflyTriple">triple excentrique</label>
               </div>
-              <label class="check"><input type="checkbox" data-field="typeSteamConditioningValve">Vanne de conditionnement vapeur</label>
+              <label class="check type-nowrap"><input type="checkbox" data-field="typeSteamConditioningValve">Vanne de conditionnement vapeur</label>
               <div class="type-other-row">
                 <label class="check"><input type="checkbox" data-field="typeOther">Autres</label>
                 <input data-field="typeOtherText" placeholder="Préciser autre type" style="border:1px solid #ccc; padding:2px 4px;">
