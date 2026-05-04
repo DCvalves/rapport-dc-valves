@@ -962,7 +962,7 @@
       display:none !important;
     }
 
-    /* v32 : numéro de rapport recalculé + export proposé avant nouveau rapport */
+    /* v35 : export nouveau rapport non obligatoire + suivi export déjà effectué */
     [data-field="customer"].report-required-missing,
     [data-field="technician"].report-required-missing {
       border:2px solid #b00020 !important;
@@ -1274,6 +1274,7 @@
     let photoCount = 0;
     let isPrinting = false;
     let resizeTimer = null;
+    let currentReportExported = false;
 
     function qs(selector, root = document) {
       return root.querySelector(selector);
@@ -1365,21 +1366,26 @@
       return value.replace(/[^a-zA-Z0-9-_]/g, '_');
     }
 
-    async function downloadJson() {
-      if (!requireReportNumber()) return false;
+    function markCurrentReportDirty() {
+      currentReportExported = false;
+    }
+
+    function markCurrentReportExported() {
+      currentReportExported = true;
+    }
+
+    async function exportJsonFileOnly() {
       const data = collectData();
       const safeReportNumber = getReportFileBaseName();
       if (!safeReportNumber) {
         alert('Le numéro de rapport est obligatoire avant l’exportation des données.');
         return false;
       }
+
       const fileName = `${safeReportNumber}.json`;
       const json = JSON.stringify(data, null, 2);
       const blob = new Blob([json], { type:'application/json' });
 
-      let exported = false;
-
-      // PC / navigateurs compatibles : choix du dossier et du nom de fichier.
       if ('showSaveFilePicker' in window) {
         try {
           const handle = await window.showSaveFilePicker({
@@ -1392,41 +1398,43 @@
           const writable = await handle.createWritable();
           await writable.write(blob);
           await writable.close();
-          exported = true;
+          return true;
         } catch (error) {
           if (error && error.name === 'AbortError') return false;
         }
       }
 
-      // iPad / Safari : affiche la feuille de partage pour choisir Fichiers, Drive, Mail, etc.
-      if (!exported && 'File' in window && navigator.canShare && navigator.share) {
+      if ('File' in window && navigator.share) {
         try {
           const file = new File([blob], fileName, { type:'application/json' });
-          if (navigator.canShare({ files:[file] })) {
+          if (!navigator.canShare || navigator.canShare({ files:[file] })) {
             await navigator.share({
               files:[file],
               title:fileName,
               text:'Export des données du rapport DC Valves'
             });
-            exported = true;
+            return true;
           }
         } catch (error) {
           if (error && (error.name === 'AbortError' || error.name === 'NotAllowedError')) return false;
         }
       }
 
-      // Solution de secours : téléchargement classique.
-      if (!exported) {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(a.href);
-        exported = true;
-      }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+      return true;
+    }
 
+    async function downloadJson() {
+      if (!requireReportNumber()) return false;
+      const exported = await exportJsonFileOnly();
+      if (!exported) return false;
+      markCurrentReportExported();
       await saveToCommonExcel('export_donnees');
       return true;
     }
@@ -1450,12 +1458,15 @@
     async function resetReport() {
       if (!confirm('Créer un nouveau rapport et effacer les champs actuels ?')) return;
 
-      const shouldExport = confirm('Voulez-vous exporter les données avant de créer un nouveau rapport ?');
-      if (shouldExport) {
-        try {
-          await downloadJson();
-        } catch (error) {
-          console.warn('Export annulé ou impossible avant nouveau rapport :', error);
+      if (!currentReportExported) {
+        const shouldExport = confirm('Voulez-vous exporter les données avant de créer un nouveau rapport ?');
+        if (shouldExport) {
+          try {
+            const exported = await downloadJson();
+            if (exported) markCurrentReportExported();
+          } catch (error) {
+            console.warn('Export annulé ou impossible avant nouveau rapport :', error);
+          }
         }
       }
 
@@ -1491,6 +1502,7 @@
       if (reportField) reportField.value = '';
       updateReportRequiredVisualState();
       syncDocumentTitleWithReportNumber();
+      currentReportExported = false;
       saveLocal();
     }
 
@@ -2062,8 +2074,14 @@
       flushCommonExcelQueue();
 
       qsa('input, textarea, select').forEach(el => {
-        el.addEventListener('input', saveLocal);
-        el.addEventListener('change', saveLocal);
+        el.addEventListener('input', () => {
+          if (el.dataset.field !== 'reportNumber') markCurrentReportDirty();
+          saveLocal();
+        });
+        el.addEventListener('change', () => {
+          if (el.dataset.field !== 'reportNumber') markCurrentReportDirty();
+          saveLocal();
+        });
       });
 
       loadLocal();
