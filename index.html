@@ -296,6 +296,14 @@
       display:flex;
       gap:6px;
       margin-top:6px;
+      flex-wrap:wrap;
+    }
+
+    .photo-source-actions button {
+      flex:1 1 110px;
+      min-height:38px;
+      padding:6px 8px;
+      white-space:normal;
     }
 
     .small {
@@ -319,21 +327,38 @@
     }
 
     .type-other-row {
-      display:grid;
-      grid-template-columns:auto minmax(0, 1fr);
-      align-items:center;
-      gap:6px;
+      display:flex;
+      flex-direction:column;
+      align-items:stretch;
+      gap:3px;
       max-width:100%;
+      margin-top:2px;
+    }
+
+    .type-other-row label.check {
+      width:100%;
     }
 
     .type-other-row input {
       width:100%;
       max-width:none !important;
+      display:block;
     }
 
     #timeTable input[type="date"] {
+      text-align:center !important;
+      text-align-last:center !important;
+      -webkit-appearance:none;
+      appearance:none;
+      display:block;
+      margin:0 auto;
+      padding-left:0 !important;
+      padding-right:0 !important;
+      direction:ltr;
+    }
+
+    #timeTable input[type="date"]::-webkit-date-and-time-value {
       text-align:center;
-      text-align-last:center;
     }
 
     .synced-field[readonly] {
@@ -715,9 +740,11 @@
         <tr><td class="label">Numéro de rapport</td><td><input data-field="reportNumber"></td><td rowspan="13" style="width:32%">
           <div class="main-photo-area">
             <div class="main-photo-box" id="mainPhotoBox"><span class="small">Aucune photo principale</span></div>
-            <div class="photo-actions no-print">
-              <button type="button" onclick="document.getElementById('mainPhotoInput').click()">Charger une photo</button>
-              <input id="mainPhotoInput" type="file" accept="image/*" capture="environment" hidden onchange="loadMainPhoto(event)">
+            <div class="photo-actions no-print photo-source-actions">
+              <button type="button" onclick="document.getElementById('mainPhotoAlbumInput').click()">Album</button>
+              <input id="mainPhotoAlbumInput" type="file" accept="image/*" hidden onchange="loadMainPhoto(event)">
+              <button type="button" onclick="document.getElementById('mainPhotoCameraInput').click()">Prendre une photo</button>
+              <input id="mainPhotoCameraInput" type="file" accept="image/*" capture="environment" hidden onchange="loadMainPhoto(event)">
               <button type="button" onclick="clearMainPhoto()">Supprimer</button>
             </div>
             <textarea data-field="mainPhotoNote" placeholder="Note/photo principale"></textarea>
@@ -1161,18 +1188,24 @@
           <b>Photo ${photoCount} :</b><span>Légende :</span>
           <input data-caption placeholder="" value="${escapeHtml(photo.caption || '')}">
         </div>
-        <div class="photo-actions no-print">
-          <button type="button" class="upload-btn">Choisir une photo</button>
-          <input type="file" accept="image/*" capture="environment" class="file-input" hidden>
+        <div class="photo-actions no-print photo-source-actions">
+          <button type="button" class="album-btn">Album</button>
+          <input type="file" accept="image/*" class="album-input" hidden>
+          <button type="button" class="camera-btn">Prendre une photo</button>
+          <input type="file" accept="image/*" capture="environment" class="camera-input" hidden>
           <button type="button" class="delete-btn">Supprimer</button>
         </div>`;
 
-      const fileInput = qs('.file-input', card);
-      const uploadBtn = qs('.upload-btn', card);
+      const albumInput = qs('.album-input', card);
+      const cameraInput = qs('.camera-input', card);
+      const albumBtn = qs('.album-btn', card);
+      const cameraBtn = qs('.camera-btn', card);
       const deleteBtn = qs('.delete-btn', card);
 
-      uploadBtn.addEventListener('click', () => fileInput.click());
-      fileInput.addEventListener('change', e => loadPhoto(e, card));
+      albumBtn.addEventListener('click', () => albumInput.click());
+      cameraBtn.addEventListener('click', () => cameraInput.click());
+      albumInput.addEventListener('change', e => loadPhoto(e, card));
+      cameraInput.addEventListener('change', e => loadPhoto(e, card));
       deleteBtn.addEventListener('click', () => {
         card.remove();
         renumberPhotos();
