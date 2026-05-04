@@ -74,6 +74,14 @@
       border-color:var(--accent);
     }
 
+    button.secondary,
+    .file-label.secondary {
+      background:#fff;
+      color:var(--accent);
+      border-color:var(--accent);
+      font-weight:700;
+    }
+
     button.danger {
       color:var(--danger);
       border-color:var(--danger);
@@ -784,8 +792,8 @@
     <h1>Rapport d'intervention - DC Valves</h1>
     <div class="toolbar">
       <button class="primary" onclick="printReport()">Exporter en PDF / Imprimer</button>
-      <button onclick="downloadJson()">Exporter les données</button>
-      <label class="file-label no-print">Importer les données <input id="importJson" type="file" accept="application/json" hidden onchange="importJson(event)"></label>
+      <button class="secondary" onclick="downloadJson()">Exporter les données</button>
+      <label class="file-label secondary no-print">Importer les données <input id="importJson" type="file" accept="application/json" hidden onchange="importJson(event)"></label>
       <button class="danger" onclick="resetReport()">Nouveau rapport</button>
     </div>
   </header>
@@ -838,7 +846,6 @@
                 <label class="check"><input type="checkbox" data-field="typeButterflyDouble">double excentrique</label>
                 <label class="check"><input type="checkbox" data-field="typeButterflyTriple">triple excentrique</label>
               </div>
-              <label class="check type-nowrap type-main"><input type="checkbox" data-field="typeSteamConditioningValve">Vanne de conditionnement vapeur</label>
               <div class="type-other-row">
                 <label class="type-other-label"><input type="checkbox" data-field="typeOther"><span>Autres</span></label>
                 <input data-field="typeOtherText" placeholder="Préciser autre type">
@@ -849,6 +856,7 @@
               <label class="check"><input type="checkbox" data-field="typeVBallValve">Vanne V ball</label>
               <label class="check"><input type="checkbox" data-field="type3WayValve">Vanne 3 voies</label>
               <label class="check"><input type="checkbox" data-field="typeDesuperheater">Désurchauffeur</label>
+              <label class="check type-nowrap"><input type="checkbox" data-field="typeSteamConditioningValve">Vanne de conditionnement vapeur</label>
             </div>
           </div>
         </td></tr>
