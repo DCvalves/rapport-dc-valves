@@ -961,6 +961,23 @@
     .print-mode .toolbar {
       display:none !important;
     }
+
+    /* v29 : champs requis pour générer le numéro de rapport */
+    [data-field="customer"].report-required-missing,
+    [data-field="technician"].report-required-missing {
+      border:2px solid #b00020 !important;
+      background:#fff0f3 !important;
+      color:#b00020 !important;
+      border-radius:4px;
+      padding:2px 4px !important;
+    }
+
+    [data-field="customer"].report-required-missing::placeholder,
+    [data-field="technician"].report-required-missing::placeholder {
+      color:#b00020;
+      opacity:1;
+    }
+
   </style>
 </head>
 <body>
@@ -1202,10 +1219,10 @@
     <section class="page time-report-page">
       <div class="report-head"><div class="report-title">Certificat de travail / Rapport de temps</div><div class="logo"><img src="dc_valves_logo.png" alt="Logo DC Valves"></div></div>
       <table>
-        <tr><td class="label">Client</td><td><input data-field="customer"></td><td class="label">Téléphone</td><td><input data-field="companyPhone"></td></tr>
+        <tr><td class="label">Client</td><td><input data-field="customer" placeholder="Client requis"></td><td class="label">Téléphone</td><td><input data-field="companyPhone"></td></tr>
         <tr><td class="label">Rue</td><td><input data-field="street"></td><td class="label">Site web</td><td><input data-field="web"></td></tr>
         <tr><td class="label">Localité</td><td><input data-field="town"></td><td class="label">Contact DC Valves</td><td><input data-field="dcContact"></td></tr>
-        <tr><td class="label">Date</td><td><input type="date" data-field="reportDate"></td><td class="label">Technicien</td><td><input data-field="technician"></td></tr>
+        <tr><td class="label">Date</td><td><input type="date" data-field="reportDate"></td><td class="label">Technicien</td><td><input data-field="technician" placeholder="Technicien requis"></td></tr>
         <tr><td class="label">N° de commande</td><td colspan="3"><input data-field="orderNo"></td></tr>
         <tr><td class="label">Défaut constaté ou service demandé</td><td colspan="3"><textarea data-field="desiredService"></textarea></td></tr>
         <tr><td class="label">Matériel nécessaire</td><td colspan="3"><textarea data-field="necessaryMaterial"></textarea></td></tr>
@@ -1450,17 +1467,20 @@
 
     function printReport() {
       if (isPrinting) return;
+      updateReportRequiredVisualState();
       if (!requireReportNumber()) return;
       isPrinting = true;
       calculateHours();
 
-      const previousTitle = document.title;
       const safeTitle = getReportFileBaseName();
       if (!safeTitle) {
         alert('Le numéro de rapport est obligatoire avant l’exportation PDF / impression.');
         isPrinting = false;
         return;
       }
+
+      // Le titre du document sert de nom proposé par Safari/Chrome lors de l'enregistrement PDF.
+      // On le conserve au numéro du rapport pour fiabiliser le nom du PDF exporté/imprimé.
       document.title = safeTitle;
       saveLocal();
 
@@ -1477,18 +1497,19 @@
       } catch (error) {
         console.error('Impression impossible :', error);
         document.body.classList.remove('print-mode');
-        document.title = previousTitle;
         isPrinting = false;
         alert('La fenêtre d’impression n’a pas pu s’ouvrir. Réessaie depuis Safari ou réinstalle l’app depuis l’écran d’accueil.');
       }
 
-      // Sécurité : on garde le titre du document assez longtemps pour que le nom proposé du PDF reste le numéro du rapport.
       setTimeout(() => {
         document.body.classList.remove('print-mode');
-        if (previousTitle) document.title = previousTitle;
         isPrinting = false;
       }, 15000);
     }
+
+    window.addEventListener('beforeprint', () => {
+      syncDocumentTitleWithReportNumber();
+    });
 
     window.addEventListener('afterprint', () => {
       document.body.classList.remove('print-mode');
@@ -1826,10 +1847,29 @@
       return `R-DCVALVES-${date}-${customer}-${technician}-${time}`;
     }
 
+
+
+    function updateReportRequiredVisualState() {
+      ['customer', 'technician'].forEach(key => {
+        const el = qs(`[data-field="${key}"]`);
+        if (!el) return;
+        el.classList.toggle('report-required-missing', !String(el.value || '').trim());
+      });
+    }
+
+    function syncDocumentTitleWithReportNumber() {
+      const safeTitle = getReportFileBaseName();
+      if (safeTitle) document.title = safeTitle;
+    }
+
     function ensureReportNumber(force = false, silent = false) {
+      updateReportRequiredVisualState();
       const field = qs('[data-field="reportNumber"]');
       if (!field) return false;
-      if (!force && field.value.trim()) return true;
+      if (!force && field.value.trim()) {
+        syncDocumentTitleWithReportNumber();
+        return true;
+      }
 
       const number = generateReportNumber();
       if (!number) {
@@ -1838,6 +1878,8 @@
       }
 
       field.value = number;
+      syncDocumentTitleWithReportNumber();
+      updateReportRequiredVisualState();
       saveLocal();
       return true;
     }
@@ -1862,6 +1904,7 @@
         if (!el) return;
 
         // Pas de génération à chaque frappe : évite les pop-ups répétées sur iPad.
+        el.addEventListener('input', updateReportRequiredVisualState);
         el.addEventListener('blur', () => ensureReportNumber(false, true));
         el.addEventListener('change', () => ensureReportNumber(false, true));
       });
