@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
@@ -81,6 +81,10 @@
       border-color:var(--accent);
       font-family:Arial, Helvetica, sans-serif;
       font-weight:600;
+      font-size:14px;
+      line-height:1.2;
+      appearance:none;
+      -webkit-appearance:none;
     }
 
     button.danger {
@@ -826,7 +830,7 @@
       <table>
         <tr><td class="label">Numéro de rapport</td><td>
           <div class="report-number-field">
-            <input data-field="reportNumber" placeholder="Automatique : R-DCVALVES-AAMMJJ-TECH-HHMM">
+            <input data-field="reportNumber">
             <button type="button" class="secondary no-print" onclick="generateReportNumberManually()">Générer</button>
           </div>
           <div class="small no-print">Format : R-AAAAMMJJ-CLIENT-TECH-HHMMSS-CODE</div>
@@ -1083,6 +1087,7 @@
 
   <script>
     const STORAGE_KEY = 'rapport_intervention_dc_valves_v2';
+    const COMMON_EXCEL_WEB_APP_URL = ''; // Coller ici l'URL du Web App Google Apps Script pour alimenter le fichier commun
     let photoCount = 0;
     let isPrinting = false;
     let resizeTimer = null;
@@ -1178,6 +1183,8 @@
       const fileName = `rapport_${safeReportNumber}.json`;
       const json = JSON.stringify(data, null, 2);
 
+      let exported = false;
+
       if ('showSaveFilePicker' in window) {
         try {
           const handle = await window.showSaveFilePicker({
@@ -1190,20 +1197,25 @@
           const writable = await handle.createWritable();
           await writable.write(json);
           await writable.close();
-          return true;
+          exported = true;
         } catch (error) {
           if (error && error.name === 'AbortError') return false;
         }
       }
 
-      const blob = new Blob([json], { type:'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(a.href);
+      if (!exported) {
+        const blob = new Blob([json], { type:'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(a.href);
+        exported = true;
+      }
+
+      await saveToCommonExcel('export_donnees');
       return true;
     }
 
@@ -1254,12 +1266,13 @@
       saveLocal();
     }
 
-    function printReport() {
+    async function printReport() {
       if (isPrinting) return;
       if (!requireReportNumber()) return;
       isPrinting = true;
       calculateHours();
       saveLocal();
+      await saveToCommonExcel('pdf_impression');
       setTimeout(() => window.print(), 300);
     }
 
@@ -1471,6 +1484,49 @@
       img.src = src;
     }
 
+
+
+    function buildCommonExcelPayload(actionType) {
+      const data = collectData();
+      const fields = data.fields || {};
+      return {
+        actionType,
+        savedAt: new Date().toISOString(),
+        reportNumber: fields.reportNumber || '',
+        reportDate: fields.reportDate || '',
+        technician: fields.technician || '',
+        customer: fields.customer || '',
+        orderNo: fields.orderNo || '',
+        valveBrand: fields.valveBrand || '',
+        serialNumber: fields.serialNumber || '',
+        tagNo: fields.tagNo || '',
+        plant: fields.plant || '',
+        valveType: fields.valveType || '',
+        internalRef: fields.internalRef || '',
+        totalHours: fields.totalHours || '',
+        totalKm: fields.totalKm || '',
+        rawData: data
+      };
+    }
+
+    async function saveToCommonExcel(actionType) {
+      if (!COMMON_EXCEL_WEB_APP_URL) return false;
+
+      try {
+        const payload = buildCommonExcelPayload(actionType);
+        await fetch(COMMON_EXCEL_WEB_APP_URL, {
+          method:'POST',
+          mode:'no-cors',
+          headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+          body:JSON.stringify(payload)
+        });
+        return true;
+      } catch (error) {
+        console.warn('Enregistrement dans le fichier commun impossible :', error);
+        alert('Le rapport a été traité, mais l’enregistrement dans le fichier Excel commun a échoué. Vérifie la connexion internet.');
+        return false;
+      }
+    }
 
     function formatDateForReportNumber(value) {
       const source = value ? new Date(value) : new Date();

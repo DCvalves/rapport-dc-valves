@@ -46,3 +46,24 @@ Le numéro se génère automatiquement quand Client et Technicien sont remplis, 
 
 
 Version v16 : format numéro de rapport R-DCVALVES-AAMMJJ-TECH-HHMM et blocage export/impression sans numéro.
+
+
+ENREGISTREMENT DANS UN FICHIER EXCEL COMMUN
+------------------------------------------
+Cette version contient le code nécessaire pour envoyer chaque export PDF/impression et chaque export de données vers un fichier Google Sheets commun.
+
+Activation :
+1. Créer un Google Sheet nommé par exemple "Suivi rapports DC Valves".
+2. Dans ce fichier : Extensions > Apps Script.
+3. Coller le contenu du fichier google-apps-script.gs.
+4. Déployer > Nouveau déploiement > Application web.
+5. Exécuter en tant que : Moi.
+6. Accès : Tout utilisateur disposant du lien.
+7. Copier l'URL du Web App.
+8. Dans index.html, remplacer :
+   const COMMON_EXCEL_WEB_APP_URL = '';
+   par :
+   const COMMON_EXCEL_WEB_APP_URL = 'URL_DU_WEB_APP';
+9. Replacer les fichiers sur GitHub et faire Commit changes.
+
+Sans cette URL, la PWA continue de fonctionner normalement, mais ne peut pas écrire dans le fichier commun.
