@@ -326,30 +326,50 @@
       font-weight:600;
     }
 
+    .type-choice-grid {
+      display:grid;
+      grid-template-columns:minmax(0, 1.45fr) minmax(0, .95fr);
+      gap:2px 24px;
+      align-items:start;
+    }
+
+    .type-left,
+    .type-right {
+      min-width:0;
+    }
+
     .type-nowrap {
       white-space:nowrap;
       flex-wrap:nowrap;
     }
 
     .type-other-row {
-      display:flex;
+      display:grid;
+      grid-template-columns:auto minmax(120px, 190px);
       align-items:center;
-      gap:8px;
+      column-gap:8px;
       max-width:100%;
       margin-top:2px;
-      flex-wrap:nowrap;
       white-space:nowrap;
+      justify-content:start;
     }
 
     .type-other-row label.check {
-      flex:0 0 auto;
+      display:inline-flex;
+      align-items:center;
+      justify-content:flex-start;
+      gap:6px;
+      min-height:24px;
       white-space:nowrap;
+      width:auto;
     }
 
     .type-other-row input {
-      flex:1 1 auto;
+      width:100%;
       min-width:120px;
       max-width:190px !important;
+      border:1px solid #ccc;
+      padding:2px 4px;
       display:block;
     }
 
@@ -775,8 +795,8 @@
         </div></td></tr>
         <tr><td class="label">Orientation</td><td><div class="checks"><label class="check"><input type="checkbox" data-field="orientationVertical">verticale</label><label class="check"><input type="checkbox" data-field="orientationHorizontal">horizontale</label></div></td></tr>
         <tr><td class="label">Type</td><td>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:2px 24px;">
-            <div>
+          <div class="type-choice-grid">
+            <div class="type-left">
               <label class="check"><input type="checkbox" data-field="typeGlobeValve">Robinet soupape</label>
               <label class="check"><input type="checkbox" data-field="typeBallValve">Vanne à boule</label>
               <label class="check"><input type="checkbox" data-field="typeButterflyValve">Vanne papillon</label>
@@ -788,10 +808,10 @@
               <label class="check type-nowrap"><input type="checkbox" data-field="typeSteamConditioningValve">Vanne de conditionnement vapeur</label>
               <div class="type-other-row">
                 <label class="check"><input type="checkbox" data-field="typeOther">Autres</label>
-                <input data-field="typeOtherText" placeholder="Préciser autre type" style="border:1px solid #ccc; padding:2px 4px;">
+                <input data-field="typeOtherText" placeholder="Préciser autre type">
               </div>
             </div>
-            <div>
+            <div class="type-right">
               <label class="check"><input type="checkbox" data-field="typeGateValve">Vanne gate</label>
               <label class="check"><input type="checkbox" data-field="typeVBallValve">Vanne V ball</label>
               <label class="check"><input type="checkbox" data-field="type3WayValve">Vanne 3 voies</label>
