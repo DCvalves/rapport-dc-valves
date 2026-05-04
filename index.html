@@ -275,11 +275,21 @@
     }
 
     .photo-caption {
-      display:grid;
-      grid-template-columns:52px 1fr;
+      display:flex;
       align-items:center;
       gap:4px;
       font-size:13px;
+      white-space:nowrap;
+      min-width:0;
+    }
+
+    .photo-caption b {
+      flex:0 0 auto;
+    }
+
+    .photo-caption input {
+      flex:1 1 auto;
+      min-width:0;
     }
 
     .photo-actions {
@@ -306,6 +316,24 @@
 
     .sync-bar .check {
       font-weight:600;
+    }
+
+    .type-other-row {
+      display:grid;
+      grid-template-columns:auto minmax(0, 1fr);
+      align-items:center;
+      gap:6px;
+      max-width:100%;
+    }
+
+    .type-other-row input {
+      width:100%;
+      max-width:none !important;
+    }
+
+    #timeTable input[type="date"] {
+      text-align:center;
+      text-align-last:center;
     }
 
     .synced-field[readonly] {
@@ -723,9 +751,9 @@
                 <label class="check"><input type="checkbox" data-field="typeButterflyTriple">triple excentrique</label>
               </div>
               <label class="check"><input type="checkbox" data-field="typeSteamConditioningValve">Vanne de conditionnement vapeur</label>
-              <div style="display:flex; align-items:center; gap:8px">
+              <div class="type-other-row">
                 <label class="check"><input type="checkbox" data-field="typeOther">Autres</label>
-                <input data-field="typeOtherText" placeholder="Préciser autre type" style="max-width:200px; border:1px solid #ccc; padding:2px 4px;">
+                <input data-field="typeOtherText" placeholder="Préciser autre type" style="border:1px solid #ccc; padding:2px 4px;">
               </div>
             </div>
             <div>
@@ -777,8 +805,8 @@
           </td>
         </tr>
         <tr>
-          <td class="label">Tension</td>
-          <td>
+          <td class="label" rowspan="2">Tension</td>
+          <td rowspan="2">
             <div class="checks motor-voltage-checks">
               <label class="check"><input type="checkbox" data-field="motorVoltage24v">24V</label>
               <label class="check"><input type="checkbox" data-field="motorVoltage230v">230V</label>
@@ -788,7 +816,6 @@
           <td class="label">Tarage</td><td><input data-field="motorSetting"></td>
         </tr>
         <tr>
-          <td colspan="2"></td>
           <td class="label">Taille de la membrane</td><td><input data-field="motorMembraneSize"></td>
         </tr>
         <tr>
@@ -1131,7 +1158,7 @@
       card.innerHTML = `
         <div class="photo-box">${photo.image ? `<img src="${photo.image}" alt="Photo ${photoCount}">` : '<span class="small">Aucune photo</span>'}</div>
         <div class="photo-caption">
-          <b>Photo ${photoCount} :</b> Légende :
+          <b>Photo ${photoCount} :</b><span>Légende :</span>
           <input data-caption placeholder="" value="${escapeHtml(photo.caption || '')}">
         </div>
         <div class="photo-actions no-print">

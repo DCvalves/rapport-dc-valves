@@ -35,3 +35,6 @@ MARCHE A SUIVRE - PWA DC VALVES
 
 
 Version v3 : correction affichage Moteur sur iPad, ajout tension 380V et champ Taille de la membrane.
+
+
+Version v5 : corrections mise en page Type, Moteur, légendes photos et dates du rapport de temps.
