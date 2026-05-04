@@ -67,3 +67,8 @@ Activation :
 9. Replacer les fichiers sur GitHub et faire Commit changes.
 
 Sans cette URL, la PWA continue de fonctionner normalement, mais ne peut pas écrire dans le fichier commun.
+
+
+VERSION v19
+- URL Google Apps Script intégrée.
+- Les exports PDF/impression et JSON envoient les données vers le Google Sheet commun.
