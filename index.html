@@ -807,7 +807,7 @@
         min-height:45px;
       }
 
-      /* Optimisation PDF v24 : éviter les coupes et les débordements */
+      /* Optimisation PDF v26 : éviter les coupes et les débordements */
       * {
         box-sizing:border-box !important;
       }
@@ -1335,9 +1335,11 @@
       const safeReportNumber = String(reportNumber).replace(/[^a-zA-Z0-9-_]/g, '_');
       const fileName = `${safeReportNumber}.json`;
       const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type:'application/json' });
 
       let exported = false;
 
+      // PC / navigateurs compatibles : choix du dossier et du nom de fichier.
       if ('showSaveFilePicker' in window) {
         try {
           const handle = await window.showSaveFilePicker({
@@ -1348,7 +1350,7 @@
             }]
           });
           const writable = await handle.createWritable();
-          await writable.write(json);
+          await writable.write(blob);
           await writable.close();
           exported = true;
         } catch (error) {
@@ -1356,8 +1358,25 @@
         }
       }
 
+      // iPad / Safari : affiche la feuille de partage pour choisir Fichiers, Drive, Mail, etc.
+      if (!exported && 'File' in window && navigator.canShare && navigator.share) {
+        try {
+          const file = new File([blob], fileName, { type:'application/json' });
+          if (navigator.canShare({ files:[file] })) {
+            await navigator.share({
+              files:[file],
+              title:fileName,
+              text:'Export des données du rapport DC Valves'
+            });
+            exported = true;
+          }
+        } catch (error) {
+          if (error && (error.name === 'AbortError' || error.name === 'NotAllowedError')) return false;
+        }
+      }
+
+      // Solution de secours : téléchargement classique.
       if (!exported) {
-        const blob = new Blob([json], { type:'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = fileName;
@@ -1419,24 +1438,42 @@
       saveLocal();
     }
 
-    async function printReport() {
+    function printReport() {
       if (isPrinting) return;
       if (!requireReportNumber()) return;
       isPrinting = true;
       calculateHours();
+
+      const previousTitle = document.title;
       const reportField = qs('[data-field="reportNumber"]');
       const safeTitle = reportField ? reportField.value.trim() : '';
       if (safeTitle) document.title = safeTitle;
       saveLocal();
 
-      // Ne pas attendre l'envoi Google Sheets avant d'ouvrir l'impression :
-      // cela rend le bouton PDF/Imprimer beaucoup plus réactif sur iPad.
+      // Envoi Google Sheets en arrière-plan : ne bloque jamais l'ouverture de la fenêtre d'impression.
       saveToCommonExcel('pdf_impression').catch(error => {
         console.warn('Envoi Google Sheets différé/échoué :', error);
       });
 
       document.body.classList.add('print-mode');
-      setTimeout(() => window.print(), 80);
+
+      // Appel direct obligatoire sur iPad/Safari : un setTimeout peut casser l'action utilisateur.
+      try {
+        window.print();
+      } catch (error) {
+        console.error('Impression impossible :', error);
+        document.body.classList.remove('print-mode');
+        document.title = previousTitle;
+        isPrinting = false;
+        alert('La fenêtre d’impression n’a pas pu s’ouvrir. Réessaie depuis Safari ou réinstalle l’app depuis l’écran d’accueil.');
+      }
+
+      // Sécurité pour les navigateurs qui ne déclenchent pas toujours afterprint.
+      setTimeout(() => {
+        document.body.classList.remove('print-mode');
+        if (previousTitle) document.title = previousTitle;
+        isPrinting = false;
+      }, 2500);
     }
 
     window.addEventListener('afterprint', () => {
@@ -1760,9 +1797,10 @@
     }
 
     function generateReportNumber() {
+      const customer = sanitizeReportPart(qs('[data-field="customer"]')?.value, 12);
       const technician = sanitizeReportPart(qs('[data-field="technician"]')?.value, 10);
 
-      if (!technician) return '';
+      if (!customer || !technician) return '';
 
       const date = formatDateForReportNumber(qs('[data-field="reportDate"]')?.value || '');
       const now = new Date();
@@ -1771,7 +1809,7 @@
         String(now.getMinutes()).padStart(2, '0')
       ].join('');
 
-      return `R-DCVALVES-${date}-${technician}-${time}`;
+      return `R-DCVALVES-${date}-${customer}-${technician}-${time}`;
     }
 
     function ensureReportNumber(force = false) {
@@ -1781,7 +1819,7 @@
 
       const number = generateReportNumber();
       if (!number) {
-        alert('Remplis d’abord le technicien pour générer le numéro de rapport.');
+        alert('Remplis d’abord le client et le technicien pour générer le numéro de rapport.');
         return false;
       }
 
@@ -1805,7 +1843,7 @@
     }
 
     function bindReportNumberAuto() {
-      ['technician', 'reportDate'].forEach(key => {
+      ['customer', 'technician', 'reportDate'].forEach(key => {
         const el = qs(`[data-field="${key}"]`);
         if (!el) return;
         ['input', 'change'].forEach(eventName => {
