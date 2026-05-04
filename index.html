@@ -962,7 +962,7 @@
       display:none !important;
     }
 
-    /* v31 : champs requis + numéro de rapport verrouillé */
+    /* v32 : numéro de rapport recalculé + export proposé avant nouveau rapport */
     [data-field="customer"].report-required-missing,
     [data-field="technician"].report-required-missing {
       border:2px solid #b00020 !important;
@@ -1447,8 +1447,13 @@
       event.target.value = '';
     }
 
-    function resetReport() {
+    async function resetReport() {
       if (!confirm('Créer un nouveau rapport et effacer les champs actuels ?')) return;
+
+      if (confirm('Souhaites-tu exporter les données du rapport actuel avant de créer un nouveau rapport ?')) {
+        const exported = await downloadJson();
+        if (!exported && !confirm('L’exportation n’a pas été finalisée. Continuer quand même et effacer les champs actuels ?')) return;
+      }
 
       qsa('[data-field]').forEach(el => {
         if (el.type === 'checkbox') el.checked = false;
@@ -1474,7 +1479,10 @@
 
       const dateField = qs('[data-field="reportDate"]');
       if (dateField) dateField.value = new Date().toISOString().slice(0, 10);
-      ensureReportNumber(false);
+      const reportField = qs('[data-field="reportNumber"]');
+      if (reportField) reportField.value = '';
+      updateReportRequiredVisualState();
+      syncDocumentTitleWithReportNumber();
       saveLocal();
     }
 
@@ -1891,15 +1899,19 @@
       if (safeTitle) document.title = safeTitle;
     }
 
-    function ensureReportNumber(force = false, silent = false) {
-      updateReportRequiredVisualState();
+    function setReportNumberValue(number) {
       const field = qs('[data-field="reportNumber"]');
       if (!field) return false;
-      if (!force && field.value.trim()) {
+      if (number && field.value !== number) {
+        field.value = number;
         syncDocumentTitleWithReportNumber();
-        return true;
+        saveLocal();
       }
+      return !!number;
+    }
 
+    function updateAutomaticReportNumber(silent = true) {
+      updateReportRequiredVisualState();
       const number = generateReportNumber();
       if (!number) {
         if (!silent) {
@@ -1908,18 +1920,28 @@
         }
         return false;
       }
+      return setReportNumberValue(number);
+    }
 
-      field.value = number;
-      syncDocumentTitleWithReportNumber();
+    function ensureReportNumber(force = false, silent = false) {
       updateReportRequiredVisualState();
-      saveLocal();
-      return true;
+      const field = qs('[data-field="reportNumber"]');
+      if (!field) return false;
+
+      // Le numéro est verrouillé : il doit toujours refléter les champs Client + Technicien.
+      // On le régénère donc dès que ces champs sont disponibles, même s’il existe déjà.
+      const updated = updateAutomaticReportNumber(true);
+      if (updated) return true;
+
+      if (!silent) {
+        alert('Remplis d’abord le client et le technicien pour générer le numéro de rapport.');
+        focusFirstMissingReportField();
+      }
+      return false;
     }
 
     function requireReportNumber() {
-      const field = qs('[data-field="reportNumber"]');
-      if (field && field.value.trim()) return true;
-      return ensureReportNumber(true);
+      return ensureReportNumber(true, false);
     }
 
     function bindReportNumberAuto() {
@@ -1929,18 +1951,9 @@
 
         // Génération automatique silencieuse dès que Client + Technicien sont remplis.
         // Aucune pop-up pendant la saisie.
-        el.addEventListener('input', () => {
-          updateReportRequiredVisualState();
-          ensureReportNumber(false, true);
-        });
-        el.addEventListener('change', () => {
-          updateReportRequiredVisualState();
-          ensureReportNumber(false, true);
-        });
-        el.addEventListener('blur', () => {
-          updateReportRequiredVisualState();
-          ensureReportNumber(false, true);
-        });
+        el.addEventListener('input', () => updateAutomaticReportNumber(true));
+        el.addEventListener('change', () => updateAutomaticReportNumber(true));
+        el.addEventListener('blur', () => updateAutomaticReportNumber(true));
       });
     }
 
