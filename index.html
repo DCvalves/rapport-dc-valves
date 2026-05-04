@@ -1450,11 +1450,15 @@
     async function resetReport() {
       if (!confirm('Créer un nouveau rapport et effacer les champs actuels ?')) return;
 
-      if (confirm('Souhaites-tu exporter les données du rapport actuel avant de créer un nouveau rapport ?')) {
-        const exported = await downloadJson();
-        if (!exported && !confirm('L’exportation n’a pas été finalisée. Continuer quand même et effacer les champs actuels ?')) return;
-      }
+      // Après validation, ouvrir directement la fenêtre de choix d’exportation.
+      // Si l’utilisateur annule l’export, le rapport n’est pas effacé afin d’éviter une perte de données.
+      const exported = await downloadJson();
+      if (!exported) return;
 
+      clearCurrentReportFields();
+    }
+
+    function clearCurrentReportFields() {
       qsa('[data-field]').forEach(el => {
         if (el.type === 'checkbox') el.checked = false;
         else el.value = '';
