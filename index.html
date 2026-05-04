@@ -328,27 +328,38 @@
 
     .type-choice-grid {
       display:grid;
-      grid-template-columns:minmax(285px, 0.95fr) minmax(210px, 1fr);
-      gap:2px 8px;
+      grid-template-columns: minmax(250px, 1fr) minmax(190px, 1fr);
+      column-gap:22px;
+      row-gap:2px;
       align-items:start;
       width:100%;
+      padding:0 6px 0 0;
     }
 
     .type-left,
     .type-right {
       min-width:0;
-      margin-left:-18px;
+      margin-left:0;
     }
 
+    .type-right {
+      justify-self:start;
+    }
+
+    .type-choice-grid label.check,
     .type-nowrap {
       white-space:nowrap;
       flex-wrap:nowrap;
     }
 
+    .type-subchoices {
+      padding-left:24px;
+    }
+
     .type-other-row {
       display:flex;
       align-items:center;
-      gap:8px;
+      gap:6px;
       margin-top:2px;
       margin-left:0;
       white-space:nowrap;
@@ -363,18 +374,24 @@
       gap:6px;
       min-height:24px;
       white-space:nowrap;
-      width:auto;
+      width:auto !important;
+      flex:0 0 auto;
+      margin:0;
+    }
+
+    .type-other-row label.check input {
+      margin:0;
       flex:0 0 auto;
     }
 
     .type-other-row input {
-      width:150px;
-      min-width:130px;
-      max-width:180px !important;
+      width:155px;
+      min-width:135px;
+      max-width:170px !important;
       border:1px solid #ccc;
       padding:2px 4px;
       display:inline-block;
-      flex:0 0 150px;
+      flex:0 0 155px;
     }
 
     #timeTable input[type="date"] {
@@ -804,7 +821,7 @@
               <label class="check"><input type="checkbox" data-field="typeGlobeValve">Robinet soupape</label>
               <label class="check"><input type="checkbox" data-field="typeBallValve">Vanne à boule</label>
               <label class="check"><input type="checkbox" data-field="typeButterflyValve">Vanne papillon</label>
-              <div style="padding-left:24px">
+              <div class="type-subchoices">
                 <label class="check"><input type="checkbox" data-field="typeButterflySimple">à manchette</label>
                 <label class="check"><input type="checkbox" data-field="typeButterflyDouble">double excentrique</label>
                 <label class="check"><input type="checkbox" data-field="typeButterflyTriple">triple excentrique</label>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dc-valves-v10';
+const CACHE_NAME = 'dc-valves-v11';
 const APP_FILES = [
   './',
   './index.html',
