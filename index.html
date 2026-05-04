@@ -356,35 +356,47 @@
       padding-left:24px;
     }
 
+    .type-main {
+      margin-left:0 !important;
+      padding-left:0 !important;
+      justify-content:flex-start !important;
+      width:max-content;
+    }
+
     .type-other-row {
       display:flex;
       align-items:center;
       gap:6px;
-      margin-top:2px;
-      margin-left:0;
+      margin-top:0;
+      margin-left:0 !important;
+      padding-left:0 !important;
       white-space:nowrap;
       flex-wrap:nowrap;
       justify-content:flex-start;
+      width:max-content;
+      max-width:100%;
     }
 
-    .type-other-row label.check {
-      display:inline-flex;
+    .type-other-label {
+      display:inline-flex !important;
       align-items:center;
       justify-content:flex-start;
-      gap:6px;
+      gap:6px !important;
       min-height:24px;
       white-space:nowrap;
       width:auto !important;
-      flex:0 0 auto;
-      margin:0;
+      min-width:0 !important;
+      flex:0 0 auto !important;
+      margin:0 !important;
+      padding:0 !important;
     }
 
-    .type-other-row label.check input {
+    .type-other-label input {
       margin:0;
       flex:0 0 auto;
     }
 
-    .type-other-row input {
+    .type-other-row input[data-field="typeOtherText"] {
       width:155px;
       min-width:135px;
       max-width:170px !important;
@@ -826,9 +838,9 @@
                 <label class="check"><input type="checkbox" data-field="typeButterflyDouble">double excentrique</label>
                 <label class="check"><input type="checkbox" data-field="typeButterflyTriple">triple excentrique</label>
               </div>
-              <label class="check type-nowrap"><input type="checkbox" data-field="typeSteamConditioningValve">Vanne de conditionnement vapeur</label>
+              <label class="check type-nowrap type-main"><input type="checkbox" data-field="typeSteamConditioningValve">Vanne de conditionnement vapeur</label>
               <div class="type-other-row">
-                <label class="check"><input type="checkbox" data-field="typeOther">Autres</label>
+                <label class="type-other-label"><input type="checkbox" data-field="typeOther"><span>Autres</span></label>
                 <input data-field="typeOtherText" placeholder="Préciser autre type">
               </div>
             </div>
