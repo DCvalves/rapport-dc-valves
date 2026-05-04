@@ -38,3 +38,8 @@ Version v3 : correction affichage Moteur sur iPad, ajout tension 380V et champ T
 
 
 Version v5 : corrections mise en page Type, Moteur, légendes photos et dates du rapport de temps.
+
+
+Version v15 : ajout de la numérotation automatique de rapport.
+Format : R-AAAAMMJJ-CLIENT-TECH-HHMMSS-CODE.
+Le numéro se génère automatiquement quand Client et Technicien sont remplis, sans écraser un numéro existant.

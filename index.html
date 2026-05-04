@@ -79,7 +79,8 @@
       background:#fff;
       color:var(--accent);
       border-color:var(--accent);
-      font-weight:700;
+      font-family:Arial, Helvetica, sans-serif;
+      font-weight:600;
     }
 
     button.danger {
@@ -317,6 +318,23 @@
     .small {
       font-size:12px;
       color:#555;
+    }
+
+    .report-number-field {
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:6px;
+      align-items:center;
+    }
+
+    .report-number-field input {
+      border:0;
+    }
+
+    .report-number-field button {
+      padding:5px 8px;
+      font-size:12px;
+      white-space:nowrap;
     }
 
     .sync-bar {
@@ -806,7 +824,13 @@
       </div>
 
       <table>
-        <tr><td class="label">Numéro de rapport</td><td><input data-field="reportNumber"></td><td rowspan="12" style="width:32%">
+        <tr><td class="label">Numéro de rapport</td><td>
+          <div class="report-number-field">
+            <input data-field="reportNumber" placeholder="Automatique : date-client-technicien">
+            <button type="button" class="secondary no-print" onclick="generateReportNumberManually()">Générer</button>
+          </div>
+          <div class="small no-print">Format : R-AAAAMMJJ-CLIENT-TECH-HHMMSS-CODE</div>
+        </td><td rowspan="12" style="width:32%">
           <div class="main-photo-area">
             <div class="main-photo-box" id="mainPhotoBox"><span class="small">Aucune photo principale</span></div>
             <div class="photo-actions no-print photo-source-actions">
@@ -1225,6 +1249,8 @@
 
       const dateField = qs('[data-field="reportDate"]');
       if (dateField) dateField.value = new Date().toISOString().slice(0, 10);
+      ensureReportNumber(false);
+      saveLocal();
     }
 
     function printReport() {
@@ -1443,6 +1469,98 @@
       img.src = src;
     }
 
+
+    function formatDateForReportNumber(dateValue = '') {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+        return dateValue.replace(/-/g, '');
+      }
+
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      return `${yyyy}${mm}${dd}`;
+    }
+
+    function sanitizeReportPart(value, maxLength = 18) {
+      return String(value || '')
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '')
+        .slice(0, maxLength);
+    }
+
+    function randomReportCode(length = 4) {
+      const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = '';
+
+      if (window.crypto && crypto.getRandomValues) {
+        const values = new Uint32Array(length);
+        crypto.getRandomValues(values);
+        values.forEach(value => {
+          code += alphabet[value % alphabet.length];
+        });
+        return code;
+      }
+
+      for (let i = 0; i < length; i++) {
+        code += alphabet[Math.floor(Math.random() * alphabet.length)];
+      }
+      return code;
+    }
+
+    function generateReportNumber() {
+      const client = sanitizeReportPart(qs('[data-field="customer"]')?.value);
+      const technician = sanitizeReportPart(qs('[data-field="technician"]')?.value, 10);
+
+      if (!client || !technician) return '';
+
+      const date = formatDateForReportNumber(qs('[data-field="reportDate"]')?.value || '');
+      const now = new Date();
+      const time = [
+        String(now.getHours()).padStart(2, '0'),
+        String(now.getMinutes()).padStart(2, '0'),
+        String(now.getSeconds()).padStart(2, '0')
+      ].join('');
+
+      return `R-${date}-${client}-${technician}-${time}-${randomReportCode()}`;
+    }
+
+    function ensureReportNumber(force = false) {
+      const field = qs('[data-field="reportNumber"]');
+      if (!field) return;
+      if (!force && field.value.trim()) return;
+
+      const number = generateReportNumber();
+      if (!number) {
+        if (force) alert('Remplis d’abord le client et le technicien pour générer le numéro de rapport.');
+        return;
+      }
+
+      field.value = number;
+      saveLocal();
+    }
+
+    function generateReportNumberManually() {
+      const field = qs('[data-field="reportNumber"]');
+      if (!field) return;
+
+      if (field.value.trim() && !confirm('Remplacer le numéro de rapport actuel ?')) return;
+      ensureReportNumber(true);
+    }
+
+    function bindReportNumberAuto() {
+      ['customer', 'technician', 'reportDate'].forEach(key => {
+        const el = qs(`[data-field="${key}"]`);
+        if (!el) return;
+        ['input', 'change'].forEach(eventName => {
+          el.addEventListener(eventName, () => ensureReportNumber(false));
+        });
+      });
+    }
+
     const PHOTO_HEADER_MAP = {
       pValveBrand:'valveBrand',
       pSerialNumber:'serialNumber',
@@ -1536,6 +1654,7 @@
       }
 
       bindSyncedFields();
+      bindReportNumberAuto();
 
       qsa('input, textarea, select').forEach(el => {
         el.addEventListener('input', saveLocal);
@@ -1543,6 +1662,7 @@
       });
 
       loadLocal();
+      ensureReportNumber(false);
       setPhotoHeaderLockState();
       syncPhotoHeader();
     }
