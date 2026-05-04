@@ -962,7 +962,7 @@
       display:none !important;
     }
 
-    /* v35 : export nouveau rapport non obligatoire + suivi export déjà effectué */
+    /* v36 : export nouveau rapport non obligatoire + suivi export déjà effectué */
     [data-field="customer"].report-required-missing,
     [data-field="technician"].report-required-missing {
       border:2px solid #b00020 !important;
@@ -1270,11 +1270,13 @@
 
   <script>
     const STORAGE_KEY = 'rapport_intervention_dc_valves_v2';
+    const EXPORT_STATUS_KEY = STORAGE_KEY + '_export_status_v1';
     const COMMON_EXCEL_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxc-NURqj3X4CAdln4ICuocz2gOj8KS1sVOI4UDkiznSwWSPPbd5vxKlR4uipUqrPDz/exec'; // URL Web App Google Apps Script pour alimenter le fichier commun
     let photoCount = 0;
     let isPrinting = false;
     let resizeTimer = null;
     let currentReportExported = false;
+    let currentReportExportHash = '';
 
     function qs(selector, root = document) {
       return root.querySelector(selector);
@@ -1366,12 +1368,44 @@
       return value.replace(/[^a-zA-Z0-9-_]/g, '_');
     }
 
+    function getCurrentReportFingerprint() {
+      return JSON.stringify(collectData());
+    }
+
     function markCurrentReportDirty() {
       currentReportExported = false;
+      currentReportExportHash = '';
+      try { localStorage.removeItem(EXPORT_STATUS_KEY); } catch (error) {}
     }
 
     function markCurrentReportExported() {
       currentReportExported = true;
+      currentReportExportHash = getCurrentReportFingerprint();
+      try {
+        localStorage.setItem(EXPORT_STATUS_KEY, JSON.stringify({
+          reportNumber: getReportFileBaseName(),
+          hash: currentReportExportHash
+        }));
+      } catch (error) {}
+    }
+
+    function loadCurrentReportExportStatus() {
+      try {
+        const raw = localStorage.getItem(EXPORT_STATUS_KEY);
+        if (!raw) return;
+        const status = JSON.parse(raw);
+        const reportNumber = getReportFileBaseName();
+        const hash = getCurrentReportFingerprint();
+        currentReportExported = !!(status && status.reportNumber === reportNumber && status.hash === hash);
+        currentReportExportHash = currentReportExported ? hash : '';
+      } catch (error) {
+        currentReportExported = false;
+        currentReportExportHash = '';
+      }
+    }
+
+    function isCurrentReportExported() {
+      return currentReportExported && currentReportExportHash && currentReportExportHash === getCurrentReportFingerprint();
     }
 
     async function exportJsonFileOnly() {
@@ -1458,15 +1492,12 @@
     async function resetReport() {
       if (!confirm('Créer un nouveau rapport et effacer les champs actuels ?')) return;
 
-      if (!currentReportExported) {
+      if (!isCurrentReportExported()) {
         const shouldExport = confirm('Voulez-vous exporter les données avant de créer un nouveau rapport ?');
         if (shouldExport) {
-          try {
-            const exported = await downloadJson();
-            if (exported) markCurrentReportExported();
-          } catch (error) {
-            console.warn('Export annulé ou impossible avant nouveau rapport :', error);
-          }
+          const exported = await downloadJson();
+          // Si la fenêtre d’exportation est fermée/annulée, on ne fait rien : le rapport reste ouvert.
+          if (!exported) return;
         }
       }
 
@@ -1503,6 +1534,8 @@
       updateReportRequiredVisualState();
       syncDocumentTitleWithReportNumber();
       currentReportExported = false;
+      currentReportExportHash = '';
+      try { localStorage.removeItem(EXPORT_STATUS_KEY); } catch (error) {}
       saveLocal();
     }
 
@@ -1586,6 +1619,12 @@
           <button type="button" class="delete-btn">Supprimer</button>
         </div>`;
 
+      const captionInput = qs('[data-caption]', card);
+      if (captionInput) {
+        captionInput.addEventListener('input', () => { markCurrentReportDirty(); saveLocal(); });
+        captionInput.addEventListener('change', () => { markCurrentReportDirty(); saveLocal(); });
+      }
+
       const albumInput = qs('.album-input', card);
       const cameraInput = qs('.camera-input', card);
       const albumBtn = qs('.album-btn', card);
@@ -1599,6 +1638,8 @@
       deleteBtn.addEventListener('click', () => {
         card.remove();
         renumberPhotos();
+        markCurrentReportDirty();
+        saveLocal();
       });
 
       grid.appendChild(card);
@@ -1612,6 +1653,7 @@
       reader.onload = () => {
         card.dataset.image = reader.result;
         qs('.photo-box', card).innerHTML = `<img src="${reader.result}" alt="Photo ajoutée">`;
+        markCurrentReportDirty();
         saveLocal();
       };
       reader.readAsDataURL(file);
@@ -1632,6 +1674,7 @@
       const box = document.getElementById('mainPhotoBox');
       if (!box) return;
       box.innerHTML = `<img src="${src}" alt="Photo principale">`;
+      markCurrentReportDirty();
       saveLocal();
     }
 
@@ -1639,6 +1682,7 @@
       const box = document.getElementById('mainPhotoBox');
       if (!box) return;
       box.innerHTML = '<span class="small">Aucune photo principale</span>';
+      markCurrentReportDirty();
       saveLocal();
     }
 
@@ -1716,6 +1760,7 @@
       }
 
       function start(e) {
+        markCurrentReportDirty();
         drawing = true;
         last = pos(e);
         e.preventDefault();
@@ -1749,6 +1794,7 @@
       const canvas = document.getElementById(id);
       if (!canvas) return;
       canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+      markCurrentReportDirty();
     }
 
     function drawSignatureImage(id, src) {
@@ -2086,6 +2132,7 @@
 
       loadLocal();
       ensureReportNumber(false, true);
+      loadCurrentReportExportStatus();
       setPhotoHeaderLockState();
       syncPhotoHeader();
     }
