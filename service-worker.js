@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dc-valves-pwa-v33';
+const CACHE_NAME = 'dc-valves-pwa-v34';
 const APP_FILES = [
   './',
   './index.html',

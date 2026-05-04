@@ -1450,10 +1450,14 @@
     async function resetReport() {
       if (!confirm('Créer un nouveau rapport et effacer les champs actuels ?')) return;
 
-      // Après validation, ouvrir directement la fenêtre de choix d’exportation.
-      // Si l’utilisateur annule l’export, le rapport n’est pas effacé afin d’éviter une perte de données.
-      const exported = await downloadJson();
-      if (!exported) return;
+      const shouldExport = confirm('Voulez-vous exporter les données avant de créer un nouveau rapport ?');
+      if (shouldExport) {
+        try {
+          await downloadJson();
+        } catch (error) {
+          console.warn('Export annulé ou impossible avant nouveau rapport :', error);
+        }
+      }
 
       clearCurrentReportFields();
     }
