@@ -32,3 +32,6 @@ MARCHE A SUIVRE - PWA DC VALVES
 5. Mise a jour
    - Remplacer les fichiers sur l'hebergement.
    - Si l'iPad garde l'ancienne version, changer CACHE_NAME dans service-worker.js, par exemple dc-valves-rapport-v2.
+
+
+Version v3 : correction affichage Moteur sur iPad, ajout tension 380V et champ Taille de la membrane.

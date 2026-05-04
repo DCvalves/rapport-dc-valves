@@ -181,8 +181,21 @@
       align-items:center;
       gap:6px;
       min-height:24px;
+      min-width:0;
       break-inside:avoid;
       page-break-inside:avoid;
+    }
+
+    .checks label.check {
+      overflow-wrap:anywhere;
+    }
+
+    .motor-action-checks {
+      grid-template-columns:1fr;
+    }
+
+    .motor-voltage-checks {
+      grid-template-columns:repeat(3, minmax(0, 1fr));
     }
 
     input[type="checkbox"] {
@@ -750,7 +763,7 @@
         <tr>
           <td class="label">Actionnement</td>
           <td>
-            <div class="checks" style="grid-template-columns:1fr 1fr">
+            <div class="checks motor-action-checks">
               <label class="check"><input type="checkbox" data-field="motorElectric">Électrique</label>
               <label class="check"><input type="checkbox" data-field="motorPneumatic">Pneumatique</label>
             </div>
@@ -766,12 +779,16 @@
         <tr>
           <td class="label">Tension</td>
           <td>
-            <div class="checks" style="grid-template-columns:1fr 1fr">
+            <div class="checks motor-voltage-checks">
               <label class="check"><input type="checkbox" data-field="motorVoltage24v">24V</label>
               <label class="check"><input type="checkbox" data-field="motorVoltage230v">230V</label>
+              <label class="check"><input type="checkbox" data-field="motorVoltage380v">380V</label>
             </div>
           </td>
           <td class="label">Tarage</td><td><input data-field="motorSetting"></td>
+        </tr>
+        <tr>
+          <td class="label">Taille de la membrane</td><td colspan="3"><input data-field="motorMembraneSize"></td>
         </tr>
         <tr>
           <td class="label">Remarque</td><td colspan="3"><textarea data-field="motorRemarks"></textarea></td>
