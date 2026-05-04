@@ -826,7 +826,7 @@
       <table>
         <tr><td class="label">Numéro de rapport</td><td>
           <div class="report-number-field">
-            <input data-field="reportNumber" placeholder="Automatique : date-client-technicien">
+            <input data-field="reportNumber" placeholder="Automatique : R-DCVALVES-AAMMJJ-TECH-HHMM">
             <button type="button" class="secondary no-print" onclick="generateReportNumberManually()">Générer</button>
           </div>
           <div class="small no-print">Format : R-AAAAMMJJ-CLIENT-TECH-HHMMSS-CODE</div>
@@ -1171,6 +1171,7 @@
     }
 
     async function downloadJson() {
+      if (!requireReportNumber()) return false;
       const data = collectData();
       const reportNumber = data.fields.reportNumber || 'sans-numero';
       const safeReportNumber = String(reportNumber).replace(/[^a-zA-Z0-9-_]/g, '_');
@@ -1255,6 +1256,7 @@
 
     function printReport() {
       if (isPrinting) return;
+      if (!requireReportNumber()) return;
       isPrinting = true;
       calculateHours();
       saveLocal();
@@ -1470,77 +1472,60 @@
     }
 
 
-    function formatDateForReportNumber(dateValue = '') {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
-        return dateValue.replace(/-/g, '');
-      }
-
-      const now = new Date();
-      const yyyy = now.getFullYear();
+    function formatDateForReportNumber(value) {
+      const source = value ? new Date(value) : new Date();
+      const now = Number.isNaN(source.getTime()) ? new Date() : source;
+      const yy = String(now.getFullYear()).slice(-2);
       const mm = String(now.getMonth() + 1).padStart(2, '0');
       const dd = String(now.getDate()).padStart(2, '0');
-      return `${yyyy}${mm}${dd}`;
+      return `${yy}${mm}${dd}`;
     }
 
-    function sanitizeReportPart(value, maxLength = 18) {
+    function sanitizeReportPart(value, maxLength = 10) {
       return String(value || '')
         .trim()
         .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[̀-ͯ]/g, '')
         .toUpperCase()
         .replace(/[^A-Z0-9]+/g, '')
         .slice(0, maxLength);
     }
 
-    function randomReportCode(length = 4) {
-      const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      let code = '';
-
-      if (window.crypto && crypto.getRandomValues) {
-        const values = new Uint32Array(length);
-        crypto.getRandomValues(values);
-        values.forEach(value => {
-          code += alphabet[value % alphabet.length];
-        });
-        return code;
-      }
-
-      for (let i = 0; i < length; i++) {
-        code += alphabet[Math.floor(Math.random() * alphabet.length)];
-      }
-      return code;
-    }
-
     function generateReportNumber() {
-      const client = sanitizeReportPart(qs('[data-field="customer"]')?.value);
       const technician = sanitizeReportPart(qs('[data-field="technician"]')?.value, 10);
 
-      if (!client || !technician) return '';
+      if (!technician) return '';
 
       const date = formatDateForReportNumber(qs('[data-field="reportDate"]')?.value || '');
       const now = new Date();
       const time = [
         String(now.getHours()).padStart(2, '0'),
-        String(now.getMinutes()).padStart(2, '0'),
-        String(now.getSeconds()).padStart(2, '0')
+        String(now.getMinutes()).padStart(2, '0')
       ].join('');
 
-      return `R-${date}-${client}-${technician}-${time}-${randomReportCode()}`;
+      return `R-DCVALVES-${date}-${technician}-${time}`;
     }
 
     function ensureReportNumber(force = false) {
       const field = qs('[data-field="reportNumber"]');
-      if (!field) return;
-      if (!force && field.value.trim()) return;
+      if (!field) return false;
+      if (!force && field.value.trim()) return true;
 
       const number = generateReportNumber();
       if (!number) {
-        if (force) alert('Remplis d’abord le client et le technicien pour générer le numéro de rapport.');
-        return;
+        alert('Remplis d’abord le technicien pour générer le numéro de rapport.');
+        return false;
       }
 
       field.value = number;
       saveLocal();
+      return true;
+    }
+
+    function requireReportNumber() {
+      const field = qs('[data-field="reportNumber"]');
+      if (field && field.value.trim()) return true;
+      return ensureReportNumber(true);
     }
 
     function generateReportNumberManually() {
@@ -1552,7 +1537,7 @@
     }
 
     function bindReportNumberAuto() {
-      ['customer', 'technician', 'reportDate'].forEach(key => {
+      ['technician', 'reportDate'].forEach(key => {
         const el = qs(`[data-field="${key}"]`);
         if (!el) return;
         ['input', 'change'].forEach(eventName => {

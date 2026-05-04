@@ -43,3 +43,6 @@ Version v5 : corrections mise en page Type, Moteur, légendes photos et dates du
 Version v15 : ajout de la numérotation automatique de rapport.
 Format : R-AAAAMMJJ-CLIENT-TECH-HHMMSS-CODE.
 Le numéro se génère automatiquement quand Client et Technicien sont remplis, sans écraser un numéro existant.
+
+
+Version v16 : format numéro de rapport R-DCVALVES-AAMMJJ-TECH-HHMM et blocage export/impression sans numéro.
