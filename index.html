@@ -833,7 +833,6 @@
             <input data-field="reportNumber">
             <button type="button" class="secondary no-print" onclick="generateReportNumberManually()">Générer</button>
           </div>
-          <div class="small no-print">Format : R-AAAAMMJJ-CLIENT-TECH-HHMMSS-CODE</div>
         </td><td rowspan="12" style="width:32%">
           <div class="main-photo-area">
             <div class="main-photo-box" id="mainPhotoBox"><span class="small">Aucune photo principale</span></div>
@@ -884,7 +883,7 @@
               <label class="check"><input type="checkbox" data-field="typeVBallValve">Vanne V ball</label>
               <label class="check"><input type="checkbox" data-field="type3WayValve">Vanne 3 voies</label>
               <label class="check"><input type="checkbox" data-field="typeDesuperheater">Désurchauffeur</label>
-              <label class="check type-nowrap"><input type="checkbox" data-field="typeSteamConditioningValve">Vanne de conditionnement vapeur</label>
+              <label class="check type-nowrap"><input type="checkbox" data-field="typeSteamConditioningValve">Conditionnement vapeur</label>
             </div>
           </div>
         </td></tr>
@@ -1180,7 +1179,7 @@
       const data = collectData();
       const reportNumber = data.fields.reportNumber || 'sans-numero';
       const safeReportNumber = String(reportNumber).replace(/[^a-zA-Z0-9-_]/g, '_');
-      const fileName = `rapport_${safeReportNumber}.json`;
+      const fileName = `${safeReportNumber}.json`;
       const json = JSON.stringify(data, null, 2);
 
       let exported = false;
@@ -1271,6 +1270,9 @@
       if (!requireReportNumber()) return;
       isPrinting = true;
       calculateHours();
+      const reportField = qs('[data-field="reportNumber"]');
+      const safeTitle = reportField ? reportField.value.trim() : '';
+      if (safeTitle) document.title = safeTitle;
       saveLocal();
       await saveToCommonExcel('pdf_impression');
       setTimeout(() => window.print(), 300);
