@@ -962,7 +962,7 @@
       display:none !important;
     }
 
-    /* v30 : champs requis pour générer le numéro de rapport */
+    /* v31 : champs requis + numéro de rapport verrouillé */
     [data-field="customer"].report-required-missing,
     [data-field="technician"].report-required-missing {
       border:2px solid #b00020 !important;
@@ -976,6 +976,20 @@
     [data-field="technician"].report-required-missing::placeholder {
       color:#b00020;
       opacity:1;
+    }
+
+
+    .locked-field {
+      background:#f2f2f2 !important;
+      color:#111 !important;
+      font-weight:700 !important;
+      cursor:not-allowed !important;
+      user-select:text;
+    }
+
+    .locked-field:focus {
+      outline:none !important;
+      box-shadow:none !important;
     }
 
   </style>
@@ -1001,7 +1015,7 @@
       <table>
         <tr><td class="label">Numéro de rapport</td><td>
           <div class="report-number-field">
-            <input data-field="reportNumber">
+            <input data-field="reportNumber" readonly class="locked-field" tabindex="-1" aria-readonly="true">
           </div>
         </td><td rowspan="12" style="width:32%">
           <div class="main-photo-area">
