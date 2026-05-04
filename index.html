@@ -1509,21 +1509,66 @@
       };
     }
 
+    function queueCommonExcelPayload(payload) {
+      try {
+        const key = STORAGE_KEY + '_pending_common_sheet';
+        const pending = JSON.parse(localStorage.getItem(key) || '[]');
+        pending.push(payload);
+        localStorage.setItem(key, JSON.stringify(pending.slice(-50)));
+      } catch (error) {
+        console.warn('Mise en file locale impossible.', error);
+      }
+    }
+
+    async function postCommonExcelPayload(payload) {
+      const body = 'payload=' + encodeURIComponent(JSON.stringify(payload));
+      await fetch(COMMON_EXCEL_WEB_APP_URL, {
+        method:'POST',
+        mode:'no-cors',
+        headers:{ 'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8' },
+        body
+      });
+    }
+
+    async function flushCommonExcelQueue() {
+      if (!COMMON_EXCEL_WEB_APP_URL) return;
+      const key = STORAGE_KEY + '_pending_common_sheet';
+      let pending = [];
+      try {
+        pending = JSON.parse(localStorage.getItem(key) || '[]');
+      } catch (error) {
+        pending = [];
+      }
+      if (!pending.length) return;
+
+      const remaining = [];
+      for (const payload of pending) {
+        try {
+          await postCommonExcelPayload(payload);
+        } catch (error) {
+          remaining.push(payload);
+        }
+      }
+      try {
+        if (remaining.length) localStorage.setItem(key, JSON.stringify(remaining));
+        else localStorage.removeItem(key);
+      } catch (error) {
+        console.warn('Nettoyage file locale impossible.', error);
+      }
+    }
+
     async function saveToCommonExcel(actionType) {
       if (!COMMON_EXCEL_WEB_APP_URL) return false;
 
+      const payload = buildCommonExcelPayload(actionType);
       try {
-        const payload = buildCommonExcelPayload(actionType);
-        await fetch(COMMON_EXCEL_WEB_APP_URL, {
-          method:'POST',
-          mode:'no-cors',
-          headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-          body:JSON.stringify(payload)
-        });
+        await flushCommonExcelQueue();
+        await postCommonExcelPayload(payload);
         return true;
       } catch (error) {
-        console.warn('Enregistrement dans le fichier commun impossible :', error);
-        alert('Le rapport a été traité, mais l’enregistrement dans le fichier Excel commun a échoué. Vérifie la connexion internet.');
+        console.warn('Enregistrement dans Google Sheets impossible :', error);
+        queueCommonExcelPayload(payload);
+        alert('Le rapport a été traité, mais l’enregistrement automatique dans Google Sheets n’a pas pu être envoyé maintenant. Il sera réessayé au prochain export avec une connexion internet.');
         return false;
       }
     }
@@ -1696,6 +1741,7 @@
 
       bindSyncedFields();
       bindReportNumberAuto();
+      flushCommonExcelQueue();
 
       qsa('input, textarea, select').forEach(el => {
         el.addEventListener('input', saveLocal);
