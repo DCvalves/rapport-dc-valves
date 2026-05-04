@@ -1328,11 +1328,21 @@
       }, 50);
     }
 
+    function getReportFileBaseName() {
+      const field = qs('[data-field="reportNumber"]');
+      const value = field ? field.value.trim() : '';
+      if (!value) return '';
+      return value.replace(/[^a-zA-Z0-9-_]/g, '_');
+    }
+
     async function downloadJson() {
       if (!requireReportNumber()) return false;
       const data = collectData();
-      const reportNumber = data.fields.reportNumber || 'sans-numero';
-      const safeReportNumber = String(reportNumber).replace(/[^a-zA-Z0-9-_]/g, '_');
+      const safeReportNumber = getReportFileBaseName();
+      if (!safeReportNumber) {
+        alert('Le numéro de rapport est obligatoire avant l’exportation des données.');
+        return false;
+      }
       const fileName = `${safeReportNumber}.json`;
       const json = JSON.stringify(data, null, 2);
       const blob = new Blob([json], { type:'application/json' });
@@ -1445,9 +1455,13 @@
       calculateHours();
 
       const previousTitle = document.title;
-      const reportField = qs('[data-field="reportNumber"]');
-      const safeTitle = reportField ? reportField.value.trim() : '';
-      if (safeTitle) document.title = safeTitle;
+      const safeTitle = getReportFileBaseName();
+      if (!safeTitle) {
+        alert('Le numéro de rapport est obligatoire avant l’exportation PDF / impression.');
+        isPrinting = false;
+        return;
+      }
+      document.title = safeTitle;
       saveLocal();
 
       // Envoi Google Sheets en arrière-plan : ne bloque jamais l'ouverture de la fenêtre d'impression.
@@ -1468,12 +1482,12 @@
         alert('La fenêtre d’impression n’a pas pu s’ouvrir. Réessaie depuis Safari ou réinstalle l’app depuis l’écran d’accueil.');
       }
 
-      // Sécurité pour les navigateurs qui ne déclenchent pas toujours afterprint.
+      // Sécurité : on garde le titre du document assez longtemps pour que le nom proposé du PDF reste le numéro du rapport.
       setTimeout(() => {
         document.body.classList.remove('print-mode');
         if (previousTitle) document.title = previousTitle;
         isPrinting = false;
-      }, 2500);
+      }, 15000);
     }
 
     window.addEventListener('afterprint', () => {
