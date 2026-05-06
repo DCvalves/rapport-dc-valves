@@ -962,9 +962,12 @@
       display:none !important;
     }
 
-    /* v36 : export nouveau rapport non obligatoire + suivi export déjà effectué */
+    /* v38 : numéro rapport sans heure + marque/série obligatoires */
     [data-field="customer"].report-required-missing,
-    [data-field="technician"].report-required-missing {
+    [data-field="technician"].report-required-missing,
+    [data-field="valveBrand"].report-required-missing,
+    [data-field="serialNumber"].report-required-missing,
+    [data-field="reportDate"].report-required-missing {
       border:2px solid #b00020 !important;
       background:#fff0f3 !important;
       color:#b00020 !important;
@@ -973,7 +976,9 @@
     }
 
     [data-field="customer"].report-required-missing::placeholder,
-    [data-field="technician"].report-required-missing::placeholder {
+    [data-field="technician"].report-required-missing::placeholder,
+    [data-field="valveBrand"].report-required-missing::placeholder,
+    [data-field="serialNumber"].report-required-missing::placeholder {
       color:#b00020;
       opacity:1;
     }
@@ -1031,8 +1036,8 @@
           </div>
         </td></tr>
         <tr><td class="label">Référence interne</td><td><input data-field="internalRef"></td></tr>
-        <tr><td class="label">Marque de la vanne</td><td><input data-field="valveBrand" value=""></td></tr>
-        <tr><td class="label">Numéro de série</td><td><input data-field="serialNumber" value=""></td></tr>
+        <tr><td class="label">Marque de la vanne</td><td><input data-field="valveBrand" value="" placeholder="Marque requise"></td></tr>
+        <tr><td class="label">Numéro de série</td><td><input data-field="serialNumber" value="" placeholder="N° série requis"></td></tr>
         <tr><td class="label">Repère / Tag</td><td><input data-field="tagNo"></td></tr>
         <tr><td class="label">Installation</td><td><input data-field="plant"></td></tr>
         <tr><td class="label">Type de vanne</td><td><input data-field="valveType"></td></tr>
@@ -1271,12 +1276,16 @@
   <script>
     const STORAGE_KEY = 'rapport_intervention_dc_valves_v2';
     const EXPORT_STATUS_KEY = STORAGE_KEY + '_export_status_v1';
+    const PDF_EXPORT_STATUS_KEY = STORAGE_KEY + '_pdf_export_status_v1';
     const COMMON_EXCEL_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxc-NURqj3X4CAdln4ICuocz2gOj8KS1sVOI4UDkiznSwWSPPbd5vxKlR4uipUqrPDz/exec'; // URL Web App Google Apps Script pour alimenter le fichier commun
     let photoCount = 0;
     let isPrinting = false;
     let resizeTimer = null;
     let currentReportExported = false;
     let currentReportExportHash = '';
+    let currentReportPdfExported = false;
+    let currentReportPdfExportHash = '';
+    let pendingPdfExportConfirmation = false;
 
     function qs(selector, root = document) {
       return root.querySelector(selector);
@@ -1286,13 +1295,26 @@
       return Array.from(root.querySelectorAll(selector));
     }
 
-    function collectData() {
+    function collectData(includeExportStatus = true) {
       const data = { fields:{}, photos:[], mainPhoto:'', signatures:{} };
 
       qsa('[data-field]').forEach(el => {
         const key = el.dataset.field;
         data.fields[key] = el.type === 'checkbox' ? el.checked : el.value;
       });
+
+      data.fields.remontage = getRemontageStatusFromFields(data.fields);
+
+      if (includeExportStatus) {
+        data.fields.pdfExported = isCurrentReportPdfExported();
+        data.fields.dataExported = isCurrentReportExported();
+        data.exportStatus = {
+          pdfExported: data.fields.pdfExported,
+          dataExported: data.fields.dataExported,
+          pdfExportedAt: getStoredExportDate(PDF_EXPORT_STATUS_KEY),
+          dataExportedAt: getStoredExportDate(EXPORT_STATUS_KEY)
+        };
+      }
 
       const mainPhotoImg = qs('#mainPhotoBox img');
       data.mainPhoto = mainPhotoImg ? mainPhotoImg.src : '';
@@ -1312,6 +1334,24 @@
 
       return data;
     }
+
+    function getRemontageStatusFromFields(fields) {
+      if (fields.assemblyCompleted) return 'Oui';
+      if (fields.assemblyNotCompleted) return 'Non';
+      return '';
+    }
+
+    function getStoredExportDate(key) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return '';
+        const status = JSON.parse(raw);
+        return status && status.exportedAt ? status.exportedAt : '';
+      } catch (error) {
+        return '';
+      }
+    }
+
 
 
     function saveLocal() {
@@ -1369,13 +1409,16 @@
     }
 
     function getCurrentReportFingerprint() {
-      return JSON.stringify(collectData());
+      return JSON.stringify(collectData(false));
     }
 
     function markCurrentReportDirty() {
       currentReportExported = false;
       currentReportExportHash = '';
+      currentReportPdfExported = false;
+      currentReportPdfExportHash = '';
       try { localStorage.removeItem(EXPORT_STATUS_KEY); } catch (error) {}
+      try { localStorage.removeItem(PDF_EXPORT_STATUS_KEY); } catch (error) {}
     }
 
     function markCurrentReportExported() {
@@ -1384,28 +1427,61 @@
       try {
         localStorage.setItem(EXPORT_STATUS_KEY, JSON.stringify({
           reportNumber: getReportFileBaseName(),
-          hash: currentReportExportHash
+          hash: currentReportExportHash,
+          exportedAt: new Date().toISOString()
         }));
       } catch (error) {}
     }
 
     function loadCurrentReportExportStatus() {
+      const reportNumber = getReportFileBaseName();
+      const hash = getCurrentReportFingerprint();
+
       try {
         const raw = localStorage.getItem(EXPORT_STATUS_KEY);
-        if (!raw) return;
-        const status = JSON.parse(raw);
-        const reportNumber = getReportFileBaseName();
-        const hash = getCurrentReportFingerprint();
+        const status = raw ? JSON.parse(raw) : null;
         currentReportExported = !!(status && status.reportNumber === reportNumber && status.hash === hash);
         currentReportExportHash = currentReportExported ? hash : '';
       } catch (error) {
         currentReportExported = false;
         currentReportExportHash = '';
       }
+
+      try {
+        const rawPdf = localStorage.getItem(PDF_EXPORT_STATUS_KEY);
+        const statusPdf = rawPdf ? JSON.parse(rawPdf) : null;
+        currentReportPdfExported = !!(statusPdf && statusPdf.reportNumber === reportNumber && statusPdf.hash === hash);
+        currentReportPdfExportHash = currentReportPdfExported ? hash : '';
+      } catch (error) {
+        currentReportPdfExported = false;
+        currentReportPdfExportHash = '';
+      }
     }
 
     function isCurrentReportExported() {
       return currentReportExported && currentReportExportHash && currentReportExportHash === getCurrentReportFingerprint();
+    }
+
+    function isCurrentReportPdfExported() {
+      return currentReportPdfExported && currentReportPdfExportHash && currentReportPdfExportHash === getCurrentReportFingerprint();
+    }
+
+    function markCurrentReportPdfExported() {
+      currentReportPdfExported = true;
+      currentReportPdfExportHash = getCurrentReportFingerprint();
+      try {
+        localStorage.setItem(PDF_EXPORT_STATUS_KEY, JSON.stringify({
+          reportNumber: getReportFileBaseName(),
+          hash: currentReportPdfExportHash,
+          exportedAt: new Date().toISOString()
+        }));
+      } catch (error) {}
+    }
+
+    function markCurrentReportPdfNotExported() {
+      currentReportPdfExported = false;
+      currentReportPdfExportHash = '';
+      try { localStorage.removeItem(PDF_EXPORT_STATUS_KEY); } catch (error) {}
     }
 
     async function exportJsonFileOnly() {
@@ -1417,12 +1493,15 @@
       }
 
       const fileName = `${safeReportNumber}.json`;
+      data.fields.dataExported = true;
+      if (data.exportStatus) data.exportStatus.dataExported = true;
       const json = JSON.stringify(data, null, 2);
       const blob = new Blob([json], { type:'application/json' });
 
       if ('showSaveFilePicker' in window) {
         try {
           const handle = await window.showSaveFilePicker({
+            id: 'dc-valves-json-export-donnees',
             suggestedName: fileName,
             types: [{
               description: 'Fichier JSON',
@@ -1535,7 +1614,10 @@
       syncDocumentTitleWithReportNumber();
       currentReportExported = false;
       currentReportExportHash = '';
+      currentReportPdfExported = false;
+      currentReportPdfExportHash = '';
       try { localStorage.removeItem(EXPORT_STATUS_KEY); } catch (error) {}
+      try { localStorage.removeItem(PDF_EXPORT_STATUS_KEY); } catch (error) {}
       saveLocal();
     }
 
@@ -1558,10 +1640,7 @@
       document.title = safeTitle;
       saveLocal();
 
-      // Envoi Google Sheets en arrière-plan : ne bloque jamais l'ouverture de la fenêtre d'impression.
-      saveToCommonExcel('pdf_impression').catch(error => {
-        console.warn('Envoi Google Sheets différé/échoué :', error);
-      });
+      pendingPdfExportConfirmation = true;
 
       document.body.classList.add('print-mode');
 
@@ -1581,6 +1660,24 @@
       }, 15000);
     }
 
+    function handlePrintReturn() {
+      if (!pendingPdfExportConfirmation) return;
+      pendingPdfExportConfirmation = false;
+      setTimeout(() => {
+        const ok = confirm('Le PDF a-t-il bien été exporté ou imprimé ?');
+        if (ok) {
+          markCurrentReportPdfExported();
+          saveLocal();
+          saveToCommonExcel('pdf_impression').catch(error => {
+            console.warn('Envoi Google Sheets différé/échoué :', error);
+          });
+        } else {
+          markCurrentReportPdfNotExported();
+          saveLocal();
+        }
+      }, 300);
+    }
+
     window.addEventListener('beforeprint', () => {
       syncDocumentTitleWithReportNumber();
     });
@@ -1588,12 +1685,14 @@
     window.addEventListener('afterprint', () => {
       document.body.classList.remove('print-mode');
       isPrinting = false;
+      handlePrintReturn();
     });
 
     window.addEventListener('focus', () => {
       setTimeout(() => {
         document.body.classList.remove('print-mode');
         isPrinting = false;
+        handlePrintReturn();
       }, 300);
     });
 
@@ -1831,6 +1930,9 @@
         internalRef: fields.internalRef || '',
         totalHours: fields.totalHours || '',
         totalKm: fields.totalKm || '',
+        remontage: fields.remontage || getRemontageStatusFromFields(fields),
+        pdfExported: !!fields.pdfExported,
+        dataExported: !!fields.dataExported,
         rawData: data
       };
     }
@@ -1918,26 +2020,25 @@
         .slice(0, maxLength);
     }
 
-    function generateReportNumber() {
-      const customer = sanitizeReportPart(qs('[data-field="customer"]')?.value, 12);
-      const technician = sanitizeReportPart(qs('[data-field="technician"]')?.value, 10);
+    const REPORT_REQUIRED_FIELDS = ['technician', 'reportDate', 'customer', 'valveBrand', 'serialNumber'];
 
-      if (!customer || !technician) return '';
+    function generateReportNumber() {
+      const technician = sanitizeReportPart(qs('[data-field="technician"]')?.value, 12);
+      const customer = sanitizeReportPart(qs('[data-field="customer"]')?.value, 14);
+      const valveBrand = sanitizeReportPart(qs('[data-field="valveBrand"]')?.value, 14);
+      const serialNumber = sanitizeReportPart(qs('[data-field="serialNumber"]')?.value, 18);
+
+      if (!technician || !customer || !valveBrand || !serialNumber) return '';
 
       const date = formatDateForReportNumber(qs('[data-field="reportDate"]')?.value || '');
-      const now = new Date();
-      const time = [
-        String(now.getHours()).padStart(2, '0'),
-        String(now.getMinutes()).padStart(2, '0')
-      ].join('');
 
-      return `R-DCVALVES-${date}-${customer}-${technician}-${time}`;
+      return `R-DCVALVES-${technician}-${date}-${customer}-${valveBrand}-${serialNumber}`;
     }
 
 
 
     function updateReportRequiredVisualState() {
-      ['customer', 'technician'].forEach(key => {
+      REPORT_REQUIRED_FIELDS.forEach(key => {
         const el = qs(`[data-field="${key}"]`);
         if (!el) return;
         el.classList.toggle('report-required-missing', !String(el.value || '').trim());
@@ -1945,7 +2046,7 @@
     }
 
     function getFirstMissingReportField() {
-      return ['customer', 'technician']
+      return REPORT_REQUIRED_FIELDS
         .map(key => qs(`[data-field="${key}"]`))
         .find(el => el && !String(el.value || '').trim()) || null;
     }
@@ -1981,7 +2082,7 @@
       const number = generateReportNumber();
       if (!number) {
         if (!silent) {
-          alert('Remplis d’abord le client et le technicien pour générer le numéro de rapport.');
+          alert('Remplis d’abord le technicien, le client, la marque de la vanne et le numéro de série pour générer le numéro de rapport.');
           focusFirstMissingReportField();
         }
         return false;
@@ -2000,7 +2101,7 @@
       if (updated) return true;
 
       if (!silent) {
-        alert('Remplis d’abord le client et le technicien pour générer le numéro de rapport.');
+        alert('Remplis d’abord le technicien, le client, la marque de la vanne et le numéro de série pour générer le numéro de rapport.');
         focusFirstMissingReportField();
       }
       return false;
@@ -2011,11 +2112,11 @@
     }
 
     function bindReportNumberAuto() {
-      ['customer', 'technician', 'reportDate'].forEach(key => {
+      REPORT_REQUIRED_FIELDS.forEach(key => {
         const el = qs(`[data-field="${key}"]`);
         if (!el) return;
 
-        // Génération automatique silencieuse dès que Client + Technicien sont remplis.
+        // Génération automatique silencieuse dès que les champs obligatoires sont remplis.
         // Aucune pop-up pendant la saisie.
         el.addEventListener('input', () => updateAutomaticReportNumber(true));
         el.addEventListener('change', () => updateAutomaticReportNumber(true));
